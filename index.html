@@ -17,6 +17,7 @@
       <h2>Categorias</h2>
       <input type="text" id="categoriaInput" placeholder="Nova categoria" />
       <button onclick="addCategoria()">Adicionar</button>
+      <input type="text" id="buscaCategoria" placeholder="🔍 Buscar categoria..." onkeyup="filtrarCategorias()">
       <ul id="listaCategorias"></ul>
     </div>
 
@@ -221,6 +222,17 @@ function cancelarEdicaoMaterial(index) {
   delete materiais[index].editando;
   renderMateriais();
 }
+function filtrarCategorias() {
+  const termo = document.getElementById("buscaCategoria").value.toLowerCase();
+  const lista = document.getElementById("listaCategorias");
+  const itens = lista.getElementsByTagName("li");
+
+  for (let i = 0; i < itens.length; i++) {
+    const texto = itens[i].textContent.toLowerCase();
+    itens[i].style.display = texto.includes(termo) ? "" : "none";
+  }
+}
+</script>
   </script>
 </body>
 </html>
