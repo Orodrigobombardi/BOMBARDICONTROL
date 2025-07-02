@@ -260,3 +260,136 @@ function filtrarCategorias() {
     XLSX.writeFile(arquivo, "relatorio_materiais.xlsx");
   }
 </script>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Controle Simples de Estoque</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #444; padding: 8px; text-align: center; }
+    th { background-color: #333; color: #fff; }
+    button { margin-top: 10px; padding: 10px; cursor: pointer; border: none; border-radius: 5px; }
+    #apagarHistorico { background-color: crimson; color: white; }
+  </style>
+</head>
+<body>
+
+  <h1>📦 Registro de Entrada e Saída</h1>
+
+  <form id="formMovimento">
+    <label>Material:</label><br>
+    <input type="text" id="material" required><br><br>
+
+    <label>Tipo de Movimento:</label><br>
+    <select id="tipo">
+      <option value="entrada">Entrada</option>
+      <option value="saida">Saída</option>
+    </select><br><br>
+
+    <label>Quantidade:</label><br>
+    <input type="number" id="quantidade" min="1" required><br><br>
+
+    <label>Quem fez:</label><br>
+    <input type="text" id="quem" placeholder="Seu nome"><br><br>
+
+    <button type="submit">Registrar</button>
+  </form>
+
+  <h2>🧾 Relatório de Movimentações</h2>
+  <table id="tabelaRelatorio">
+    <thead>
+      <tr>
+        <th>Data</th>
+        <th>Material</th>
+        <th>Tipo</th>
+        <th>Quantidade</th>
+        <th>Quem fez</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Botão de apagar -->
+  <button id="apagarHistorico">🗑️ Apagar Histórico de Movimentações</button>
+
+<script>
+  // Pega do localStorage ou cria vazio
+  function carregarHistorico() {
+    return JSON.parse(localStorage.getItem("movimentacoesEstoque")) || [];
+  }
+
+  function salvarHistorico(lista) {
+    localStorage.setItem("movimentacoesEstoque", JSON.stringify(lista));
+  }
+
+  function atualizarTabela() {
+    const historico = carregarHistorico();
+    const tbody = document.querySelector("#tabelaRelatorio tbody");
+    tbody.innerHTML = "";
+
+    if (historico.length === 0) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="5">Nenhuma movimentação registrada.</td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+
+    historico.forEach(item => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${item.data}</td>
+        <td>${item.material}</td>
+        <td>${item.tipo}</td>
+        <td>${item.quantidade}</td>
+        <td>${item.quem}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById("formMovimento").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const material = document.getElementById("material").value.trim();
+    const tipo = document.getElementById("tipo").value;
+    const quantidade = parseInt(document.getElementById("quantidade").value);
+    const quem = document.getElementById("quem").value.trim() || "Não informado";
+
+    if (!material || isNaN(quantidade) || quantidade <= 0) {
+      alert("Preencha todos os campos corretamente!");
+      return;
+    }
+
+    const novaMovimentacao = {
+      data: new Date().toLocaleString(),
+      material,
+      tipo: tipo === "entrada" ? "Entrada" : "Saída",
+      quantidade,
+      quem
+    };
+
+    const historico = carregarHistorico();
+    historico.push(novaMovimentacao);
+    salvarHistorico(historico);
+
+    atualizarTabela();
+    this.reset();
+  });
+
+  // Botão para apagar o histórico
+  document.getElementById("apagarHistorico").addEventListener("click", function () {
+    if (confirm("Tem certeza que deseja apagar todo o histórico?")) {
+      localStorage.removeItem("movimentacoesEstoque");
+      atualizarTabela();
+      alert("Histórico apagado com sucesso!");
+    }
+  });
+
+  // Mostrar tabela ao carregar página
+  atualizarTabela();
+</script>
+
+</body>
+</html>
