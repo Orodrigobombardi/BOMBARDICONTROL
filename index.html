@@ -8,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
  </head>
 <body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <h1>💱BOMBARDI CONTROLE DE ESTOQUE </h1>
 
   <div class="container">
@@ -236,3 +237,26 @@ function filtrarCategorias() {
   </script>
 </body>
 </html>
+<button onclick="gerarExcel()">📥 Gerar Excel dos Materiais</button>
+<script>
+  function gerarExcel() {
+    if (materiais.length === 0) {
+      alert("Nenhum material cadastrado ainda.");
+      return;
+    }
+
+    // Transforma os dados em uma estrutura de planilha
+    const dadosParaExcel = materiais.map((m, index) => ({
+      Nº: index + 1,
+      Nome: m.nome,
+      Categoria: m.categoria
+    }));
+
+    const planilha = XLSX.utils.json_to_sheet(dadosParaExcel);
+    const arquivo = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(arquivo, planilha, "Materiais");
+
+    // Gera e baixa o arquivo
+    XLSX.writeFile(arquivo, "relatorio_materiais.xlsx");
+  }
+</script>
