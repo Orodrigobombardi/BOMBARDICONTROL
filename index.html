@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<link rel="stylesheet" href="index.css">
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>📦 Estoque de Materiais</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
+ </head>
+<body>
+  <h1>💱BOMBARDI CONTROLE DE ESTOQUE </h1>
+
+  <div class="container">
+
+    <!-- Categorias -->
+    <div class="section">
+      <h2>Categorias</h2>
+      <input type="text" id="categoriaInput" placeholder="Nova categoria" />
+      <button onclick="addCategoria()">Adicionar</button>
+      <ul id="listaCategorias"></ul>
+    </div>
+
+    <!-- Materiais -->
+    <div class="section">
+      <h2>Materiais</h2>
+      <select id="categoriaSelect"></select>
+      <input type="text" id="materialNome" placeholder="Nome do material" />
+      <input type="number" id="materialQtd" placeholder="Quantidade" />
+      <button onclick="addMaterial()">Adicionar</button>
+
+      <input type="text" id="search" placeholder="🔍 Buscar material..." class="search" oninput="renderMateriais()" />
+
+      <ul id="listaMateriais"></ul>
+      <button class="pdf-button" onclick="gerarPDF()">📄 Gerar PDF</button>
+    </div>
+  </div>
+    <script>
+    let categorias = JSON.parse(localStorage.getItem("categorias")) || [];
+    let materiais = JSON.parse(localStorage.getItem("materiais")) || [];
+    let editCategoriaIndex = -1;
+    let editMaterialIndex = -1;
+
+    function salvarLocal() {
+      localStorage.setItem("categorias", JSON.stringify(categorias));
+      localStorage.setItem("materiais", JSON.stringify(materiais));
+    }
+
+    function addCategoria() {
+      const input = document.getElementById("categoriaInput");
+      const nome = input.value.trim();
+      if (!nome) return;
+      categorias.push(nome);
+      input.value = "";
+      salvarLocal();
+      renderCategorias();
+    }
+
+    function deleteCategoria(index) {
+      if (confirm("Apagar categoria? Os materiais dela também serão apagados!")) {
+        const cat = categorias[index];
+        categorias.splice(index, 1);
+        materiais = materiais.filter(m => m.categoria !== cat);
+        salvarLocal();
+        renderCategorias();
+        renderMateriais();
+      }
+    }
+
+    function renderCategorias() {
+      const lista = document.getElementById("listaCategorias");
+      const select = document.getElementById("categoriaSelect");
+      lista.innerHTML = "";
+      select.innerHTML = "";
+
+      categorias.forEach((cat, index) => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          ${cat}
+          <div class="item-actions">
+            <button onclick="editarCategoria(${index})">Editar</button>
+            <button onclick="deleteCategoria(${index})">Excluir</button>
+          </div>
+        `;
+        lista.appendChild(li);
+
+        const option = document.createElement("option");
+        option.value = cat;
+        option.textContent = cat;
+        select.appendChild(option);
+      });
+    }
+
+    function editarCategoria(index) {
+      const novoNome = prompt("Novo nome da categoria:", categorias[index]);
+      if (novoNome) {
+        const antiga = categorias[index];
+        categorias[index] = novoNome;
+        materiais.forEach(m => {
+          if (m.categoria === antiga) m.categoria = novoNome;
+        });
+        salvarLocal();
+        renderCategorias();
+        renderMateriais();
+      }
+    }
+
+    function addMaterial() {
+      const nome = document.getElementById("materialNome").value.trim();
+      const qtd = document.getElementById("materialQtd").value;
+      const categoria = document.getElementById("categoriaSelect").value;
+      if (!nome || !qtd || !categoria) return;
+
+      materiais.push({
+        nome,
+        qtd,
+        categoria,
+        data: new Date().toLocaleDateString()
+      });
+
+      document.getElementById("materialNome").value = "";
+      document.getElementById("materialQtd").value = "";
+      salvarLocal();
+      renderMateriais();
+    }
+
+    function editarMaterial(index) {
+      const m = materiais[index];
+      const novoNome = prompt("Novo nome:", m.nome);
+      const novaQtd = prompt("Nova quantidade:", m.qtd);
+      const novaCat = prompt("Nova categoria:", m.categoria);
+      if (novoNome && novaQtd && novaCat) {
+        m.nome = novoNome;
+        m.qtd = novaQtd;
+        m.categoria = novaCat;
+        salvarLocal();
+        renderMateriais();
+      }
+    }
+
+    function deleteMaterial(index) {
+      if (confirm("Apagar material?")) {
+        materiais.splice(index, 1);
+        salvarLocal();
+        renderMateriais();
+      }
+    }
+
+   function renderMateriais() {
+  const lista = document.getElementById("listaMateriais");
+  const termo = document.getElementById("search").value.toLowerCase();
+  lista.innerHTML = "";
+
+  materiais
+    .filter((m, idx) => m.nome.toLowerCase().includes(termo))
+    .forEach((m, index) => {
+      const li = document.createElement("li");
+
+      if (m.editando) {
+        // Modo edição direto na tela
+        li.innerHTML = `
+          <input type="text" id="editNome${index}" value="${m.nome}" />
+          <input type="number" id="editQtd${index}" value="${m.qtd}" />
+          <select id="editCat${index}">
+            ${categorias.map(cat => `<option value="${cat}" ${cat === m.categoria ? "selected" : ""}>${cat}</option>`).join("")}
+          </select>
+          <div class="item-actions">
+            <button onclick="salvarEdicaoMaterial(${index})">Salvar</button>
+            <button onclick="cancelarEdicaoMaterial(${index})">Cancelar</button>
+          </div>
+        `;
+      } else {
+        // Visualização normal
+        li.innerHTML = `
+          <strong>${m.nome}</strong> - ${m.qtd} und - ${m.categoria} <br>
+          <small>Data: ${m.data}</small><br>
+          <div class="item-actions">
+            <button onclick="editarMaterial(${index})">Editar</button>
+            <button onclick="deleteMaterial(${index})">Excluir</button>
+          </div>
+        `;
+      }
+
+      lista.appendChild(li);
+    });
+}
+
+    function gerarPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("📦 Lista de Materiais", 10, 10);
+      let y = 20;
+      materiais.forEach((m, i) => {
+        doc.text(`${i + 1}. ${m.nome} | ${m.qtd} und | ${m.categoria} | ${m.data}`, 10, y);
+        y += 10;
+      });
+      doc.save("materiais.pdf");
+    }
+
+    renderCategorias();
+    renderMateriais();
+    function editarMaterial(index) {
+  materiais[index].editando = true;
+  renderMateriais();
+}
+
+function salvarEdicaoMaterial(index) {
+  const nome = document.getElementById(`editNome${index}`).value;
+  const qtd = document.getElementById(`editQtd${index}`).value;
+  const categoria = document.getElementById(`editCat${index}`).value;
+
+  materiais[index].nome = nome;
+  materiais[index].qtd = qtd;
+  materiais[index].categoria = categoria;
+  delete materiais[index].editando;
+
+  salvarLocal();
+  renderMateriais();
+}
+
+function cancelarEdicaoMaterial(index) {
+  delete materiais[index].editando;
+  renderMateriais();
+}
+  </script>
+</body>
+</html>
